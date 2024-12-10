@@ -1,4 +1,5 @@
 #include "dasp_f64.h"
+#include "GPU_Helpers/warmupHelper.cuh"
 
 int verify_new(MAT_VAL_TYPE *cusp_val, MAT_VAL_TYPE *cuda_val, int *new_order, int length)
 {
@@ -62,12 +63,16 @@ void cusparse_spmv_all(MAT_VAL_TYPE *cu_ValA, MAT_PTR_TYPE *cu_RowPtrA, int *cu_
     // printf("cusparse preprocessing time: %8.4lf ms\n", cusparse_pre);
     *cu_pre = cusparse_pre;
 
-    for (int i = 0; i < 100; ++i)
-    {
-        cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+    // for (int i = 0; i < 100; ++i)
+    // {
+    //     cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+    //                 &alpha, matA, vecX, &beta, vecY, CUDA_R_64F,
+    //                 CUSPARSE_SPMV_ALG_DEFAULT, dBuffer);
+    // }
+    WarmupHelper helper;
+    helper.warmup(cusparseSpMV, handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                     &alpha, matA, vecX, &beta, vecY, CUDA_R_64F,
                     CUSPARSE_SPMV_ALG_DEFAULT, dBuffer);
-    }
     cudaDeviceSynchronize();
 
     gettimeofday(&t1, NULL);
