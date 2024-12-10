@@ -2,6 +2,8 @@
 #include "common.h"
 #include "utils.h"
 
+#include "GPU_Helpers/launchHelper.cuh"
+
 #define groupNum 1
 #define warpNum_short 4
 #define loopNum_short 4
@@ -1014,18 +1016,26 @@ __host__ void spmv_all(char *filename, MAT_VAL_TYPE *csrValA, MAT_PTR_TYPE *csrR
     cudaFuncSetAttribute(dasp_spmv<1>, cudaFuncAttributePreferredSharedMemoryCarveout, carveout);
     cudaFuncSetAttribute(dasp_spmv<2>, cudaFuncAttributePreferredSharedMemoryCarveout, carveout);
     cudaFuncSetAttribute(dasp_spmv<4>, cudaFuncAttributePreferredSharedMemoryCarveout, carveout);
+    LaunchHelper<false> helper;
     if (rowloop == 1)
     {
-        for (int i = 0; i < 100; ++i)
-        {
-            dasp_spmv<1><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
+        helper.warmup(dasp_spmv<1>,BlockNum_all, ThreadNum_all,0,0,dX_val, dY_val, 
                                                     dlong_val, dlong_cid, dval_by_warp, dlong_ptr_warp, row_long,
                                                     dreg_val, dreg_cid, dblock_ptr, row_block, blocknum, 
                                                     dirreg_val, dirreg_cid, dirreg_rpt,
                                                     dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
                                                     offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
                                                     fill0_nnz_short13, fill0_nnz_short34);
-        }
+        // for (int i = 0; i < 100; ++i)
+        // {
+        //     dasp_spmv<1><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
+        //                                             dlong_val, dlong_cid, dval_by_warp, dlong_ptr_warp, row_long,
+        //                                             dreg_val, dreg_cid, dblock_ptr, row_block, blocknum, 
+        //                                             dirreg_val, dirreg_cid, dirreg_rpt,
+        //                                             dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
+        //                                             offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
+        //                                             fill0_nnz_short13, fill0_nnz_short34);
+        // }
         cudaDeviceSynchronize();
         gettimeofday(&t1, NULL);
         for (int i = 0; i < 1000; ++i)
@@ -1043,16 +1053,23 @@ __host__ void spmv_all(char *filename, MAT_VAL_TYPE *csrValA, MAT_PTR_TYPE *csrR
     }
     else if (rowloop == 2)
     {
-        for (int i = 0; i < 100; ++i)
-        {
-            dasp_spmv<2><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
+        // for (int i = 0; i < 100; ++i)
+        // {
+        //     dasp_spmv<2><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
+        //                                             dlong_val, dlong_cid, dval_by_warp, dlong_ptr_warp, row_long,
+        //                                             dreg_val, dreg_cid, dblock_ptr, row_block, blocknum, 
+        //                                             dirreg_val, dirreg_cid, dirreg_rpt,
+        //                                             dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
+        //                                             offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
+        //                                             fill0_nnz_short13, fill0_nnz_short34);
+        // }
+        helper.warmup(dasp_spmv<2>,BlockNum_all, ThreadNum_all,0,0,dX_val, dY_val, 
                                                     dlong_val, dlong_cid, dval_by_warp, dlong_ptr_warp, row_long,
                                                     dreg_val, dreg_cid, dblock_ptr, row_block, blocknum, 
                                                     dirreg_val, dirreg_cid, dirreg_rpt,
                                                     dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
                                                     offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
                                                     fill0_nnz_short13, fill0_nnz_short34);
-        }
         cudaDeviceSynchronize();
         gettimeofday(&t1, NULL);
         for (int i = 0; i < 1000; ++i)
@@ -1070,16 +1087,23 @@ __host__ void spmv_all(char *filename, MAT_VAL_TYPE *csrValA, MAT_PTR_TYPE *csrR
     }
     else
     {
-        for (int i = 0; i < 100; ++i)
-        {
-            dasp_spmv<4><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
+        helper.warmup(dasp_spmv<4>,BlockNum_all, ThreadNum_all,0,0,dX_val, dY_val, 
                                                     dlong_val, dlong_cid, dval_by_warp, dlong_ptr_warp, row_long,
                                                     dreg_val, dreg_cid, dblock_ptr, row_block, blocknum, 
                                                     dirreg_val, dirreg_cid, dirreg_rpt,
                                                     dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
                                                     offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
                                                     fill0_nnz_short13, fill0_nnz_short34);
-        }
+        // for (int i = 0; i < 100; ++i)
+        // {
+        //     dasp_spmv<4><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
+        //                                             dlong_val, dlong_cid, dval_by_warp, dlong_ptr_warp, row_long,
+        //                                             dreg_val, dreg_cid, dblock_ptr, row_block, blocknum, 
+        //                                             dirreg_val, dirreg_cid, dirreg_rpt,
+        //                                             dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
+        //                                             offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
+        //                                             fill0_nnz_short13, fill0_nnz_short34);
+        // }
         cudaDeviceSynchronize();
         gettimeofday(&t1, NULL);
         for (int i = 0; i < 1000; ++i)
