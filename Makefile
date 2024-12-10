@@ -3,7 +3,7 @@ NVCC = nvcc
 # /usr/local/cuda-12.0/bin/nvcc
 GCC = /usr/bin/gcc
 # /usr/local/gcc-12.2/bin/gcc
-GENCODE_FLAGS = -gencode arch=compute_80,code=sm_80
+GENCODE_FLAGS = -gencode arch=compute_80,code=sm_80 -gencode arch=compute_90,code=sm_90
 
 NVCCVERSION = $(shell $(NVCC) --version | grep release | sed -n -E 's/.* ([0-9]+\.[0-9]+).*/\1/p')
 GCC_BIN_DIR = $(shell dirname ${GCC})
