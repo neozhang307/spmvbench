@@ -1036,23 +1036,9 @@ __host__ void spmv_all(char *filename, MAT_VAL_TYPE *csrValA, MAT_PTR_TYPE *csrR
         //                                             offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
         //                                             fill0_nnz_short13, fill0_nnz_short34);
         // }
-        cudaDeviceSynchronize();
-        gettimeofday(&t1, NULL);
-        for (int i = 0; i < 1000; ++i)
-        {    
-            dasp_spmv<1><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
-                                                    dlong_val, dlong_cid, dval_by_warp, dlong_ptr_warp, row_long,
-                                                    dreg_val, dreg_cid, dblock_ptr, row_block, blocknum, 
-                                                    dirreg_val, dirreg_cid, dirreg_rpt,
-                                                    dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
-                                                    offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
-                                                    fill0_nnz_short13, fill0_nnz_short34);
-        }
-        cudaDeviceSynchronize();
-        gettimeofday(&t2, NULL);
     }
     else if (rowloop == 2)
-    {
+    {  
         // for (int i = 0; i < 100; ++i)
         // {
         //     dasp_spmv<2><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
@@ -1070,20 +1056,7 @@ __host__ void spmv_all(char *filename, MAT_VAL_TYPE *csrValA, MAT_PTR_TYPE *csrR
                                                     dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
                                                     offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
                                                     fill0_nnz_short13, fill0_nnz_short34);
-        cudaDeviceSynchronize();
-        gettimeofday(&t1, NULL);
-        for (int i = 0; i < 1000; ++i)
-        {    
-            dasp_spmv<2><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
-                                                    dlong_val, dlong_cid, dval_by_warp, dlong_ptr_warp, row_long,
-                                                    dreg_val, dreg_cid, dblock_ptr, row_block, blocknum, 
-                                                    dirreg_val, dirreg_cid, dirreg_rpt,
-                                                    dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
-                                                    offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
-                                                    fill0_nnz_short13, fill0_nnz_short34);
-        }
-        cudaDeviceSynchronize();
-        gettimeofday(&t2, NULL);
+       
     }
     else
     {
@@ -1104,8 +1077,48 @@ __host__ void spmv_all(char *filename, MAT_VAL_TYPE *csrValA, MAT_PTR_TYPE *csrR
         //                                             offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
         //                                             fill0_nnz_short13, fill0_nnz_short34);
         // }
-        cudaDeviceSynchronize();
-        gettimeofday(&t1, NULL);
+    }
+    cudaDeviceSynchronize();
+    gettimeofday(&t1, NULL);
+    if (rowloop == 1)
+    {
+        
+        
+        for (int i = 0; i < 1000; ++i)
+        {    
+            dasp_spmv<1><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
+                                                    dlong_val, dlong_cid, dval_by_warp, dlong_ptr_warp, row_long,
+                                                    dreg_val, dreg_cid, dblock_ptr, row_block, blocknum, 
+                                                    dirreg_val, dirreg_cid, dirreg_rpt,
+                                                    dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
+                                                    offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
+                                                    fill0_nnz_short13, fill0_nnz_short34);
+        }
+        // cudaDeviceSynchronize();
+        // gettimeofday(&t2, NULL);
+    }
+    else if (rowloop == 2)
+    {
+        // cudaDeviceSynchronize();
+        // gettimeofday(&t1, NULL);
+        for (int i = 0; i < 1000; ++i)
+        {    
+            dasp_spmv<2><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
+                                                    dlong_val, dlong_cid, dval_by_warp, dlong_ptr_warp, row_long,
+                                                    dreg_val, dreg_cid, dblock_ptr, row_block, blocknum, 
+                                                    dirreg_val, dirreg_cid, dirreg_rpt,
+                                                    dshort_val, dshort_cid, short_row_1, common_13, short_row_34, short_row_2, 
+                                                    offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
+                                                    fill0_nnz_short13, fill0_nnz_short34);
+        }
+        // cudaDeviceSynchronize();
+        // gettimeofday(&t2, NULL);
+    }
+    else
+    {
+        
+        // cudaDeviceSynchronize();
+        // gettimeofday(&t1, NULL);
         for (int i = 0; i < 1000; ++i)
         {    
             dasp_spmv<4><<<BlockNum_all, ThreadNum_all>>>(dX_val, dY_val, 
@@ -1116,10 +1129,11 @@ __host__ void spmv_all(char *filename, MAT_VAL_TYPE *csrValA, MAT_PTR_TYPE *csrR
                                                     offset_reg, offset_short1, offset_short13, offset_short34, offset_short22,
                                                     fill0_nnz_short13, fill0_nnz_short34);
         }
-        cudaDeviceSynchronize();
-        gettimeofday(&t2, NULL);
+        // cudaDeviceSynchronize();
+        // gettimeofday(&t2, NULL);
     }
-    
+    cudaDeviceSynchronize();
+    gettimeofday(&t2, NULL);  
 
     *dasp_time = ((t2.tv_sec - t1.tv_sec) * 1000.0 + (t2.tv_usec - t1.tv_usec) / 1000.0) / 1000; 
     *dasp_gflops = (double)((long)nnzA * 2) / (*dasp_time * 1e6);
