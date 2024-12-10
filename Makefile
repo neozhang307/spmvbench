@@ -1,7 +1,7 @@
 #compilers
 NVCC = nvcc
 # /usr/local/cuda-12.0/bin/nvcc
-GCC = /usr/local/gcc-12.2/bin/gcc
+GCC = /usr/bin/gcc
 # /usr/local/gcc-12.2/bin/gcc
 GENCODE_FLAGS = -gencode arch=compute_80,code=sm_80
 
