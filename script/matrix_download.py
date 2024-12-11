@@ -5,7 +5,7 @@ import csv
 
 os.system("mkdir ../MM")
 
-filename = "../data/matrix_list1.csv"
+filename = "../data/matrix_list21.csv"
 
 total = sum(1 for line in open(filename))
 print(total)
