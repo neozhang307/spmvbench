@@ -308,7 +308,7 @@ int main(int argc, char **argv)
     printf("cusparse sorted:        %8.4lf ms  %8.4lf ms  %8.4lf GFlop/s\n", cus_pre, cus_time, cus_gflops);
 
     FILE* fout;
-    fout = fopen("data/a100_f64_record.csv", "a");
+    fout = fopen("data/sorted_f64_record.csv", "a");
     fprintf(fout, "%s,%d,%d,%d,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n", filename, rowA, colA, nnzA, dasp_pre_time, dasp_spmv_time, dasp_spmv_gflops, cu_pre, cu_time, cu_gflops, cus_pre, cus_time, cus_gflops);
     fclose(fout);
     
