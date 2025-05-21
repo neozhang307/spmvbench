@@ -117,7 +117,7 @@ void cusparse_spmv_all(MAT_VAL_TYPE *cu_ValA, MAT_PTR_TYPE *cu_RowPtrA, int *cu_
 }
 
 __host__
-void cusparse_spmv_all_reorder(MAT_VAL_TYPE *cu_ValA, MAT_PTR_TYPE *cu_RowPtrA, int *cu_ColIdxA, 
+void cusparse_spmv_all_preprocess(MAT_VAL_TYPE *cu_ValA, MAT_PTR_TYPE *cu_RowPtrA, int *cu_ColIdxA, 
                        MAT_VAL_TYPE *cu_ValX, MAT_VAL_TYPE *cu_ValY, int rowA, int colA, MAT_PTR_TYPE nnzA,
                        long long int data_origin1, long long int data_origin2, double *cu_time, double *cu_gflops, double *cu_bandwidth1, double *cu_bandwidth2, double *cu_pre)
 {
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
     long long int data_origin1 = (nnzA + colA + rowA) * sizeof(MAT_VAL_TYPE) + nnzA * sizeof(int) + (rowA + 1) * sizeof(MAT_PTR_TYPE);
     long long int data_origin2 = (nnzA + nnzA + rowA) * sizeof(MAT_VAL_TYPE) + nnzA * sizeof(int) + (rowA + 1) * sizeof(MAT_PTR_TYPE);
     cusparse_spmv_all(csrValA, csrRowPtrA, csrColIdxA, X_val, dY_val, rowA, colA, nnzA, data_origin1, data_origin2, &cu_time, &cu_gflops, &cu_bandwidth1, &cu_bandwidth2, &cu_pre);
-    cusparse_spmv_all_reorder(csrValA, csrRowPtrA, csrColIdxA, X_val, dY_val, rowA, colA, nnzA, data_origin1, data_origin2, &cus_time, &cus_gflops, &cus_bandwidth1, &cus_bandwidth2, &cus_pre);
+    cusparse_spmv_all_preprocess(csrValA, csrRowPtrA, csrColIdxA, X_val, dY_val, rowA, colA, nnzA, data_origin1, data_origin2, &cus_time, &cus_gflops, &cus_bandwidth1, &cus_bandwidth2, &cus_pre);
        
     double dasp_pre_time = 0, dasp_spmv_time = 0, dasp_spmv_gflops = 0, dasp_spmv_bandwidth = 0;
     spmv_all(filename, csrValA, csrRowPtrA, csrColIdxA, X_val, Y_val, new_order, rowA, colA, nnzA, NUM, threshold, block_longest, 
@@ -260,10 +260,10 @@ int main(int argc, char **argv)
     printf("                    pre_time     exe_time       performance\n");
     printf("DASP(Double):    %8.4lf ms  %8.4lf ms  %8.4lf GFlop/s\n", dasp_pre_time, dasp_spmv_time, dasp_spmv_gflops);
     printf("cusparse:        %8.4lf ms  %8.4lf ms  %8.4lf GFlop/s\n", cu_pre, cu_time, cu_gflops);
-    printf("cusparse reordered:        %8.4lf ms  %8.4lf ms  %8.4lf GFlop/s\n", cus_pre, cus_time, cus_gflops);
+    printf("cusparse preprocess:        %8.4lf ms  %8.4lf ms  %8.4lf GFlop/s\n", cus_pre, cus_time, cus_gflops);
 
     FILE* fout;
-    fout = fopen("data/reorder_f64_record.csv", "a");
+    fout = fopen("data/reorder_f64_preprocess.csv", "a");
     fprintf(fout, "%s,%d,%d,%d,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n", filename, rowA, colA, nnzA, dasp_pre_time, dasp_spmv_time, dasp_spmv_gflops, cu_pre, cu_time, cu_gflops, cus_pre, cus_time, cus_gflops);
     fclose(fout);
     
