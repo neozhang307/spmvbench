@@ -62,11 +62,13 @@ void cusparse_spmv_all(MAT_VAL_TYPE *cu_ValA, MAT_PTR_TYPE *cu_RowPtrA, int *cu_
 
     cusparseCreateDnVec(&vecX, colA, dX, CUDA_R_64F);
     cusparseCreateDnVec(&vecY, rowA, dY, CUDA_R_64F);
+    
     cusparseSpMV_bufferSize(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                             &alpha, matA, vecX, &beta, vecY, CUDA_R_64F,
                             CUSPARSE_SPMV_ALG_DEFAULT, &bufferSize);
     cudaMalloc(&dBuffer, bufferSize);
-    // cudaDeviceSynchronize();
+
+    cudaDeviceSynchronize();
     gettimeofday(&t2, NULL);
     double cusparse_pre = (t2.tv_sec - t1.tv_sec) * 1000.0 + (t2.tv_usec - t1.tv_usec) / 1000.0;
     // printf("cusparse preprocessing time: %8.4lf ms\n", cusparse_pre);
@@ -111,10 +113,11 @@ void cusparse_spmv_all(MAT_VAL_TYPE *cu_ValA, MAT_PTR_TYPE *cu_RowPtrA, int *cu_
     cudaFree(dA_rpt);
     cudaFree(dX);
     cudaFree(dY);
+    cudaDeviceReset();
 }
 
 __host__
-void cusparse_sorted_spmv_all(MAT_VAL_TYPE *cu_ValA, MAT_PTR_TYPE *cu_RowPtrA, int *cu_ColIdxA, 
+void cusparse_spmv_all_reorder(MAT_VAL_TYPE *cu_ValA, MAT_PTR_TYPE *cu_RowPtrA, int *cu_ColIdxA, 
                        MAT_VAL_TYPE *cu_ValX, MAT_VAL_TYPE *cu_ValY, int rowA, int colA, MAT_PTR_TYPE nnzA,
                        long long int data_origin1, long long int data_origin2, double *cu_time, double *cu_gflops, double *cu_bandwidth1, double *cu_bandwidth2, double *cu_pre)
 {
@@ -145,80 +148,40 @@ void cusparse_sorted_spmv_all(MAT_VAL_TYPE *cu_ValA, MAT_PTR_TYPE *cu_RowPtrA, i
 
     gettimeofday(&t1, NULL);
     cusparseCreate(&handle);
-    
-    /******************* */
-    //Add sortting here
-     /******************* */
-    // Manual sorting here
-    // Count nonzeros per row and create pairs
-    std::vector<std::pair<int, int>> row_nnz(rowA);
-    for(int i = 0; i < rowA; i++) {
-        row_nnz[i] = {i, cu_RowPtrA[i+1] - cu_RowPtrA[i]};
-    }
-    
-    // Sort rows by nonzero count (descending)
-    std::sort(row_nnz.begin(), row_nnz.end(),
-              [](const auto& a, const auto& b) { return a.second > b.second; });
-    
-    // Create permutation array
-    std::vector<int> P(rowA);
-    for(int i = 0; i < rowA; i++) {
-        P[i] = row_nnz[i].first;
-    }
-    
-    // Create new arrays for sorted matrix
-    std::vector<MAT_VAL_TYPE> sorted_vals(nnzA);
-    std::vector<int> sorted_cols(nnzA);
-    std::vector<MAT_PTR_TYPE> sorted_rowptr(rowA + 1);
-    
-    // Fill new arrays
-    sorted_rowptr[0] = 0;
-    MAT_PTR_TYPE current_pos = 0;
-    
-    for(int i = 0; i < rowA; i++) {
-        int old_row = P[i];
-        int row_size = cu_RowPtrA[old_row + 1] - cu_RowPtrA[old_row];
-        
-        // Copy values and column indices
-        std::copy(cu_ValA + cu_RowPtrA[old_row], 
-                 cu_ValA + cu_RowPtrA[old_row + 1],
-                 sorted_vals.data() + current_pos);
-        std::copy(cu_ColIdxA + cu_RowPtrA[old_row],
-                 cu_ColIdxA + cu_RowPtrA[old_row + 1],
-                 sorted_cols.data() + current_pos);
-                 
-        current_pos += row_size;
-        sorted_rowptr[i + 1] = current_pos;
-    }
-    
-    // Copy sorted arrays to device
-    cudaMemcpy(dA_val, sorted_vals.data(), sizeof(MAT_VAL_TYPE) * nnzA, cudaMemcpyHostToDevice);
-    cudaMemcpy(dA_cid, sorted_cols.data(), sizeof(int) * nnzA, cudaMemcpyHostToDevice);
-    cudaMemcpy(dA_rpt, sorted_rowptr.data(), sizeof(MAT_PTR_TYPE) * (rowA + 1), cudaMemcpyHostToDevice);
-    /******************* */
     cusparseCreateCsr(&matA, rowA, colA, nnzA, dA_rpt, dA_cid, dA_val,
                         CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
                         CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
+    
 
-    /******************* */
     cusparseCreateDnVec(&vecX, colA, dX, CUDA_R_64F);
     cusparseCreateDnVec(&vecY, rowA, dY, CUDA_R_64F);
+    
     cusparseSpMV_bufferSize(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                             &alpha, matA, vecX, &beta, vecY, CUDA_R_64F,
                             CUSPARSE_SPMV_ALG_DEFAULT, &bufferSize);
     cudaMalloc(&dBuffer, bufferSize);
-    // cudaDeviceSynchronize();
+    cusparseSpMV_preprocess( handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                            &alpha, matA, vecX, &beta, vecY, CUDA_R_64F,
+                            CUSPARSE_SPMV_ALG_DEFAULT, dBuffer);
+    cudaDeviceSynchronize();
+
     gettimeofday(&t2, NULL);
     double cusparse_pre = (t2.tv_sec - t1.tv_sec) * 1000.0 + (t2.tv_usec - t1.tv_usec) / 1000.0;
     // printf("cusparse preprocessing time: %8.4lf ms\n", cusparse_pre);
     *cu_pre = cusparse_pre;
-
+    
+    // for (int i = 0; i < 100; ++i)
+    // {
+    //     cusparseSpMV(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+    //                 &alpha, matA, vecX, &beta, vecY, CUDA_R_64F,
+    //                 CUSPARSE_SPMV_ALG_DEFAULT, dBuffer);
+    // }
     WarmupHelper helper;
     helper.warmup(cusparseSpMV, handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                     &alpha, matA, vecX, &beta, vecY, CUDA_R_64F,
                     CUSPARSE_SPMV_ALG_DEFAULT, dBuffer);
     cudaDeviceSynchronize();
-
+    
     gettimeofday(&t1, NULL);
     for (int i = 0; i < 1000; ++i)
     {
@@ -240,21 +203,13 @@ void cusparse_sorted_spmv_all(MAT_VAL_TYPE *cu_ValA, MAT_PTR_TYPE *cu_RowPtrA, i
     cusparseDestroy(handle);
 
     cudaMemcpy(cu_ValY, dY, sizeof(MAT_VAL_TYPE) * rowA, cudaMemcpyDeviceToHost);
-    MAT_VAL_TYPE *temp_ValY = new MAT_VAL_TYPE[rowA];
-    for(int i = 0; i < rowA; i++) {
-        temp_ValY[P[i]] = cu_ValY[i];
-    }
-    memcpy(cu_ValY, temp_ValY, sizeof(MAT_VAL_TYPE) * rowA);
-    delete[] temp_ValY;
-    /******************* */
-    //Change cu_ValY to original order
-    
-    /******************* */
+
     cudaFree(dA_val);
     cudaFree(dA_cid);
     cudaFree(dA_rpt);
     cudaFree(dX);
     cudaFree(dY);
+    cudaDeviceReset();
 }
 __host__
 int main(int argc, char **argv)
@@ -296,7 +251,7 @@ int main(int argc, char **argv)
     long long int data_origin1 = (nnzA + colA + rowA) * sizeof(MAT_VAL_TYPE) + nnzA * sizeof(int) + (rowA + 1) * sizeof(MAT_PTR_TYPE);
     long long int data_origin2 = (nnzA + nnzA + rowA) * sizeof(MAT_VAL_TYPE) + nnzA * sizeof(int) + (rowA + 1) * sizeof(MAT_PTR_TYPE);
     cusparse_spmv_all(csrValA, csrRowPtrA, csrColIdxA, X_val, dY_val, rowA, colA, nnzA, data_origin1, data_origin2, &cu_time, &cu_gflops, &cu_bandwidth1, &cu_bandwidth2, &cu_pre);
-    cusparse_sorted_spmv_all(csrValA, csrRowPtrA, csrColIdxA, X_val, dY_val, rowA, colA, nnzA, data_origin1, data_origin2, &cus_time, &cus_gflops, &cus_bandwidth1, &cus_bandwidth2, &cus_pre);
+    cusparse_spmv_all_reorder(csrValA, csrRowPtrA, csrColIdxA, X_val, dY_val, rowA, colA, nnzA, data_origin1, data_origin2, &cus_time, &cus_gflops, &cus_bandwidth1, &cus_bandwidth2, &cus_pre);
        
     double dasp_pre_time = 0, dasp_spmv_time = 0, dasp_spmv_gflops = 0, dasp_spmv_bandwidth = 0;
     spmv_all(filename, csrValA, csrRowPtrA, csrColIdxA, X_val, Y_val, new_order, rowA, colA, nnzA, NUM, threshold, block_longest, 
@@ -305,10 +260,10 @@ int main(int argc, char **argv)
     printf("                    pre_time     exe_time       performance\n");
     printf("DASP(Double):    %8.4lf ms  %8.4lf ms  %8.4lf GFlop/s\n", dasp_pre_time, dasp_spmv_time, dasp_spmv_gflops);
     printf("cusparse:        %8.4lf ms  %8.4lf ms  %8.4lf GFlop/s\n", cu_pre, cu_time, cu_gflops);
-    printf("cusparse sorted:        %8.4lf ms  %8.4lf ms  %8.4lf GFlop/s\n", cus_pre, cus_time, cus_gflops);
+    printf("cusparse reordered:        %8.4lf ms  %8.4lf ms  %8.4lf GFlop/s\n", cus_pre, cus_time, cus_gflops);
 
     FILE* fout;
-    fout = fopen("data/sorted_f64_record.csv", "a");
+    fout = fopen("data/reorder_f64_record.csv", "a");
     fprintf(fout, "%s,%d,%d,%d,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n", filename, rowA, colA, nnzA, dasp_pre_time, dasp_spmv_time, dasp_spmv_gflops, cu_pre, cu_time, cu_gflops, cus_pre, cus_time, cus_gflops);
     fclose(fout);
     
